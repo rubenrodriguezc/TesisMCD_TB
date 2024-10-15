@@ -1,0 +1,1947 @@
+---
+title: "tesis"
+author: "Diana Guerrero"
+date: "2024-06-08"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r warning=FALSE, echo=FALSE, message=FALSE}
+
+library(tidyverse)
+library(gridExtra)
+library(dplyr)
+library(ggplot2)
+library(psych)
+library(purrr)
+library(flextable)
+library(kableExtra)
+library(caret)
+library(kableExtra)
+library(vcd)
+require(CGPfunctions)
+require(ggpubr)
+require(table1)
+
+library(factoextra)
+library(cluster)
+library(FactoMineR)
+library (MASS)
+library(corrplot)
+library(ggsignif)
+library(pROC)
+library(ggrepel)
+library(graphics)
+library(inspectdf)
+library(tables)
+library(car)
+library(ROSE)
+
+```
+
+```{r warning=FALSE}
+library(readxl)
+base_analisis_R <- read_excel("C:/Users/diana/OneDrive - Saludcapital/- Ruben Rodriguez/Tesis/base_analisis_R.xlsx", 
+    col_types = c("numeric", "text", "numeric", 
+        "date", "text", "date", "text", "numeric", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "date", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text"))
+View(base_analisis_R)
+```
+
+
+## DESCRIPTIVO UNIVARIADO
+
+
+```{r setup, include=FALSE}
+
+summary(base_analisis_R)
+
+```
+
+El dataset cuenta con 10102 registros y 59 atributos. De los cuales una variable edad es numerica y las demás son categóricas. Adicionalmente, se cuenta con 3 variables que contienen fechas (Fecha de inicio de sintomas. fecha de inicio de tratamiento y fecha de egreso del programa.)
+
+En cuanto a la edad, la media y mediana es de 50 años con un maximo de 109 años y un minimo de menor de 1 año o meses de edad. 
+
+```{r}
+df <- as.data.frame(base_analisis_R)
+```
+
+
+```{r}
+hist(x = df$AÑO, main = "Histograma de casos", 
+     xlab = "Año", ylab = "Frecuencia",
+     col = "purple")
+```
+```{r}
+tabla40=table(df$AÑO)
+tabla40
+prop.table(tabla40)*100
+```
+```{r}
+año <- c(1311, 1364, 1334, 1534, 1253, 1498, 1808)
+casos<- c(2016, 2017, 2018, 2019, 2020, 2021, 2022)
+
+
+plot(casos, año, type = "o", col="seagreen2")
+```
+
+```{r}
+mean(tabla40)
+sd(tabla40)
+```
+
+
+
+```{r}
+library(scales)
+library (ggplot2)
+g = ggplot(df, aes(AÑO, fill=SEXO) ) +
+  labs(title = "Casos por año y Sexo")+ylab("") +
+  theme(plot.title = element_text(size = rel(2), colour = "blue"))
+
+g+geom_bar(position="dodge") + scale_fill_manual(values = alpha(c("pink", "blue", "green", "grey"), 1)) +
+  theme(axis.title.x = element_text(face="bold", size=7))   
+```
+
+
+```{r}
+boxplot(df$EDAD~base_analisis_R$AÑO,
+main = "Figura 1. Distribución de edad en pacientes con TB por año",
+ylab="edad", 
+xlab = "Año", las=1,
+col=c("#960200","#ee964b"))
+```
+
+```{r}
+pl <- ggplot(df, aes(x=EDAD))
+pl + geom_histogram()
+pl2 <- pl + geom_histogram(binwidth = 0.1, col='black', fill='green', alpha=0.4)
+pl2
+```
+
+
+Las variables categoricas se analizan en tablas:
+
+
+```{r }
+# Tabla de frecuencias de categoricas
+tabla1=table(df$SEXO)
+tabla1
+prop.table(tabla1)*100
+```
+El 66.2% de los pacientes que ingresaron al programa de TB entre 2016 y 2022 son hombres (6.687), el porcentaje restante corresponde a mujeres.
+
+
+```{r}
+#base_analisis_R$INGRESO_TTO <- toupper(base_analisis_R$INGRESO_TTO)
+#df$INGRESO_TTO<- str_replace(df$INGRESO_TTO, "si","SI")
+tabla2=table(df$INGRESO_TTO)
+tabla2
+prop.table(tabla2)*100
+```
+
+El 95.7% de las personas que ingresaron al programa iniciaron tratamiento tetraconjugado. Del procentaje restante de quienes no iniciaron tratamiento el 72% fallecieron o el diagnostico fue postmortem y el 14.3% se descarto la tuberculosis como enfermedad causante del cuadro clínico.En el 8% no alcanzaron a iniciar tratamiento porque corresponden a pérdidas en el seguimiento.
+
+
+```{r pressure, echo=FALSE}
+SIN_TTO <- subset(df, df$INGRESO_TTO == "NO")
+tabla3=table(SIN_TTO$CONDICION_EGRESO)
+prop.table(tabla3)*100
+
+```
+
+```{r}
+tabla4=table(df$`PERTENENCIA_ETNICA`)
+prop.table(tabla4)*100
+```
+
+En cuanto a la pertenencia étnica se encuenrtra que la mayoria corresponde a indigenas 1.5%, seguido de problacion afrocolombiana 0.8% y ROOM 0.12%. El 97.4% no se autorreconoce como parte de una etnia. Dentro de los pacientes pertenecientes a etnia indigena se encuentra que los pueblos mas frecuentes son: Embera y Embera-Katío con el 45% de la representación de los pueblos indígenas.
+
+```{r}
+ETNIA <- subset(df, df$`PERTENENCIA_ETNICA` == "INDIGENA")
+#ETNIA <- chartr("ÁÉÍÓÚ", "AEIOU", toupper(ETNIA))
+tabla5=table(ETNIA$PUEBLO_INDIGENA)
+prop.table(tabla5)*100
+```
+
+```{r}
+tabla4=table(df$trabajador_salud)
+tabla4
+prop.table(tabla4)*100
+```
+
+
+En cuanto a los grupos poblacionales especiales se encuentra que:
+
+Hay 135 personas que refieren discapacidad lo que corresponde al 1.33%.
+Hay 79 personas que refieren desplazamiento forzado lo que corresponde al 0.78%.
+Hay 523 personas reportadas como migrantes lo que corresponde al 5.2%.
+Hay 339 personas reportadas como migrantes lo que corresponde al 3.4%.
+Hay 20 mujeres reportadas como gestantes lo que corresponde al 0.6% del total de mujeres.
+Hay 541 personas reportadas como habitantes de calle lo que corresponde al 5.4%.
+Hay 14 personas reportadas como poblacion en protección por parte de ICBF, lo que corresponde al 0.14%.
+Hay 339 personas reportadas como migrantes lo que corresponde al 3.4%.
+Hay 11 personas reportadas como poblacion psiquiatrica lo que corresponde al 0.11%.
+Hay 16 personas reportadas como victimas de la violencia por conflicto armado lo que corresponde al 0.16%.
+Hay 204 personas reportadas como trabajadores de la salud lo que corresponde al 2%.
+No se reportan personas madres comunitarias ni desmovilzados dentro de los grupos poblacionales.
+
+
+```{r}
+c1=ggplot(df,aes(x=gp_discapa)) + geom_bar() + theme_gray()
+c2=ggplot(df,aes(x= gp_desplaz)) + geom_bar() + theme_gray()
+c3=ggplot(df,aes(x=gp_migrant)) + geom_bar() + theme_gray()
+ggarrange(c1,c2,c3, labels = c("A", "B","C"), ncol = 3, nrow = 1)
+```
+
+```{r}
+library(ggpubr)
+c4=ggplot(df,aes(x=gp_carcela)) + geom_bar() + theme_gray()
+c5=ggplot(df,aes(x=gp_gestan)) + geom_bar() + theme_gray()
+c6=ggplot(df,aes(x=gp_indigen)) + geom_bar() + theme_gray()
+ggarrange(c4,c5,c6, labels = c("D", "E", "F"), ncol = 3, nrow = 1)
+```
+
+```{r}
+c7=ggplot(df,aes(x=gp_pobicbf)) + geom_bar() + theme_gray()
+c8=ggplot(df,aes(x=gp_mad_com)) + geom_bar() + theme_gray()
+c9=ggplot(df,aes(x=gp_desmovi)) + geom_bar() + theme_gray()
+ggarrange(c7,c8,c9, labels = c("G", "H", "I"), ncol = 3, nrow = 1)
+```
+
+```{r}
+c10=ggplot(df,aes(x=gp_psiquia)) + geom_bar() + theme_gray()
+c11=ggplot(df,aes(x=gp_vic_vio)) + geom_bar() + theme_gray()
+c12=ggplot(df,aes(x=trabajador_salud)) + geom_bar() + theme_gray()
+ggarrange(c10,c11,c12, labels = c("J", "K", "L"), ncol = 3, nrow = 1)
+```
+
+```{r}
+library(stringr)
+df$LOC_RES<- str_replace(df$LOC_RES, "Antonio Nariño","15")
+df$LOC_RES<- str_replace(df$LOC_RES, "Barrios Unidos","12")
+df$LOC_RES<- str_replace(df$LOC_RES, "Bosa","7")
+df$LOC_RES<- str_replace(df$LOC_RES, "Chapinero","2")
+df$LOC_RES<- str_replace(df$LOC_RES, "Ciudad Bolivar","19")
+df$LOC_RES<- str_replace(df$LOC_RES, "Engativa","10")
+df$LOC_RES<- str_replace(df$LOC_RES, "Fontibon","9")
+df$LOC_RES<- str_replace(df$LOC_RES, "Fuera de Bogota","FDB")
+df$LOC_RES<- str_replace(df$LOC_RES, "Kennedy","8")
+df$LOC_RES<- str_replace(df$LOC_RES, "La Candelaria","17")
+df$LOC_RES<- str_replace(df$LOC_RES, "Los Martires","14")
+df$LOC_RES<- str_replace(df$LOC_RES, "Puente Aranda","16")
+df$LOC_RES<- str_replace(df$LOC_RES, "Rafael Uribe Uribe","18")
+df$LOC_RES<- str_replace(df$LOC_RES, "San Cristobal","4")
+df$LOC_RES<- str_replace(df$LOC_RES, "Santafe","3")
+df$LOC_RES<- str_replace(df$LOC_RES, "Suba","11")
+df$LOC_RES<- str_replace(df$LOC_RES, "Teusaquillo","13")
+df$LOC_RES<- str_replace(df$LOC_RES, "Tunjuelito","6")
+df$LOC_RES<- str_replace(df$LOC_RES, "Usaquen","1")
+df$LOC_RES<- str_replace(df$LOC_RES, "Usme","5")
+df$LOC_RES<- str_replace(df$LOC_RES, "Sumapaz","20")
+```
+
+
+```{r}
+ggplot(df, aes(x = LOC_RES)) +                      #1
+  #geom_bar() +                                             #2
+  geom_bar(width=0.4, colour="red", fill="skyblue") +       #2 
+  
+  labs(x="localidad residencia",y= "Frecuencia")  +              #3               
+  ylim(c(0,3000)) +                               #4
+  #xlim(c(0,300)) +                              #4
+  ggtitle("Casos por localidad de residencia")  +               #5
+  
+  # theme_bw() +                                 #6
+  theme_bw(base_size = 22) +                     #6
+  #coord_flip() +                                #7
+  
+  geom_text(aes(label=..count..), stat='count',  #8
+            position=position_dodge(0.8), 
+            vjust=-0.4, 
+            size=4.0
+            ) + 
+  scale_y_continuous(labels = scales::number_format()) +
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 8), 
+        panel.grid.minor = element_blank()) #9
+```
+
+En cuanto a la localidad de residencia, se encuentra que el 19.2% (n=1938 casos) pese a ser diagnosticados en Bogotá residen fuera de la ciudad, el 80.8 % de los casos restantes (n=8164) residen en su mayoria en la localidad de Suba 12%, Kennedy 11.8%, seguido de Engativa 9%, Ciudad Bolivar 8.2%, Rafael uribe Uribe 8.1% y Bosa 7%. En estas localidades se concentra la mayor cantidad de pacientes adscritos al programa de tuberculosis de los ultimos 7 años.
+
+```{r}
+df$LOC_DX<- str_replace(df$LOC_DX, "Antonio Nariño","15")
+df$LOC_DX<- str_replace(df$LOC_DX, "Barrios Unidos","12")
+df$LOC_DX<- str_replace(df$LOC_DX, "Bosa","7")
+df$LOC_DX<- str_replace(df$LOC_DX, "Chapinero","2")
+df$LOC_DX<- str_replace(df$LOC_DX, "Ciudad Bolivar","19")
+df$LOC_DX<- str_replace(df$LOC_DX, "Engativa","10")
+df$LOC_DX<- str_replace(df$LOC_DX, "Fontibon","9")
+df$LOC_DX<- str_replace(df$LOC_DX, "Kennedy","8")
+df$LOC_DX<- str_replace(df$LOC_DX, "La Candelaria","17")
+df$LOC_DX<- str_replace(df$LOC_DX, "Los Martires","14")
+df$LOC_DX<- str_replace(df$LOC_DX, "Puente Aranda","16")
+df$LOC_DX<- str_replace(df$LOC_DX, "Rafael Uribe Uribe","18")
+df$LOC_DX<- str_replace(df$LOC_DX, "San Cristobal","4")
+df$LOC_DX<- str_replace(df$LOC_DX, "Santafe","3")
+df$LOC_DX<- str_replace(df$LOC_DX, "Suba","11")
+df$LOC_DX<- str_replace(df$LOC_DX, "Teusaquillo","13")
+df$LOC_DX<- str_replace(df$LOC_DX, "Tunjuelito","6")
+df$LOC_DX<- str_replace(df$LOC_DX, "Usaquen","1")
+df$LOC_DX<- str_replace(df$LOC_DX, "Usme","5")
+
+```
+
+
+
+```{r }
+ggplot(df, aes(x = LOC_DX)) +                      #1
+  #geom_bar() +                                             #2
+  geom_bar(width=0.4, colour="red", fill="skyblue") +       #2 
+  
+  labs(x="localidad DX",y= "Frecuencia")  +              #3               
+  ylim(c(0,1200)) +                               #4
+  #xlim(c(0,300)) +                              #4
+              #5
+  
+  # theme_bw() +                                 #6
+  theme_bw(base_size = 22) +                     #6
+  #coord_flip() +                                #7
+  
+  geom_text(aes(label=..count..), stat='count',  #8
+            position=position_dodge(0.8), 
+            vjust=-0.4, 
+            size=4.0
+            ) + 
+  facet_wrap(~"Variable Localidad DX")+ 
+ theme_classic() + 
+  theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 8), 
+        panel.grid.minor = element_blank())
+```
+
+En relación con la localidad de diagnóstico se evidencia que los casos son diagnosticados en su mayoria en IPS de la Subred Norte la cual concentra el 34.7% de los casos diagnosticados en el distrito. Esto se debe a la oferta de servicios por parte de los prestadores de servicios de salud en Bogotá, se concentra en las localidades de chapinero 12.6%, Usaquen 12%  y Teusaquillo 10.07%. La tercera localidad con mayor número de casos diagnosticados que no pertenece a la subred Norte es los Martires con 11.3% y la cuarta localidad es San Cristóbal con 9.4%, seguido de Kennedy con 8%, esto se debe a que en estas localidades se encuentran instituciones de alta complejidad con buena capacidad de diagnostico para TB.
+
+```{r}
+df$REGIMEN_AFILIACION<- str_replace(df$REGIMEN_AFILIACION, "C - CONTRIBUTIVO","C")
+df$REGIMEN_AFILIACION<- str_replace(df$REGIMEN_AFILIACION, "E - ESPECIAL","E")
+df$REGIMEN_AFILIACION<- str_replace(df$REGIMEN_AFILIACION, "N - NO ASEGURADO","N")
+df$REGIMEN_AFILIACION<- str_replace(df$REGIMEN_AFILIACION, "P - EXCEPCION","P")
+df$REGIMEN_AFILIACION<- str_replace(df$REGIMEN_AFILIACION, "S - SUBSIDIADO","S")
+```
+
+
+```{r}
+pie(table(df$REGIMEN_AFILIACION), col=c("blue", "grey", "green", "yellow", "orange", "violet"), main="Distribucion de casos por tipo de aseguramiento")
+```
+
+Se observa que el 55.4% de los pacientes diagnosticados en Bogotá pertenecen al regimen contributivo (n=5599), seguido del regimen subsidiado con 30.6% (n=3088), en el 6.6% los pacientes no se encuentran asegurados al sistema de salud (n=669), en el 5.1% pertenecen a regimenes especiales (n=516) y en el 2.3% a regimen de excepción (n=230). 
+
+```{r}
+tabla6=table(df$REGIMEN_AFILIACION)
+tabla6
+prop.table(tabla6)*100
+```
+
+```{r}
+pie(table(df$TIPO_TB), col=c("blue", "violet"), main="Distribucion de casos por tipo de TB")
+```
+
+Con relación al tipo de TB, se encuentra que el 69% de los casos confirmados en el distrito son TB pulmonares (n=6940) mientras que el 31% corresponden a formas extrapulmonares.
+
+```{r}
+tabla7=table(df$TIPO_TB)
+tabla7
+prop.table(tabla7)*100
+```
+
+De las formas extrapulmonares, la localización anatómica mas frecuente es pleural 32.4% (n=1023), seguida de meningea 26.8% (n=848), ganglionar 11.6% (n=366) principalmente.
+
+```{r}
+df$LOCALIZACION_EXTRA<- str_replace(df$LOCALIZACION_EXTRA, "Vejiga","Genitourinaria")
+tabla8=table(df$LOCALIZACION_EXTRA)
+tabla8
+prop.table(tabla8)*100
+```
+
+
+
+```{r}
+df$CONDICION_INGRESO<- str_replace(df$CONDICION_INGRESO, "OTROS PREVIAMENTE TRATADOS","OPT")
+df$CONDICION_INGRESO<- str_replace(df$CONDICION_INGRESO, "REINGRESO TRAS FRACASO","RTF")
+df$CONDICION_INGRESO<- str_replace(df$CONDICION_INGRESO, "REINGRESO TRAS PERDIDA EN EL SEGUIMIENTO","RTPS")
+df$CONDICION_INGRESO<- str_replace(df$CONDICION_INGRESO, "REINGRESO TRAS RECAIDA","RTR")
+
+
+barplot(table(df$CONDICION_INGRESO), col=c("orange","blue", "yellow", "red", "green", "cyan", "grey"), main="Distribucion de condiciones de ingreso al programa de los pacientes con TB" )
+```
+
+El 934.% de los casos corresponden a casos nuevos, mientras que el 3.1% son previamente tratados de los que no se tiene traza de los tratamientos previos recibidos. Por otro lado, el 2.2% de los casos corresponden a recuperados tras perdida en el seguimiento, 1.06% reingresos por recaídas y 0.25% reingreso tras fracaso del tratamiento.
+
+
+```{r}
+tabla9=table(df$CONDICION_INGRESO)
+tabla9
+prop.table(tabla9)*100
+```
+
+Asi mismo, en cuanto a la realización de pruebas de laboratorio para el Diagnostico de la TB se encuentra que en el 54% las baciloscopias fueron negativas y en el 30.7% estas tuvieron un resultado positivo, por otro lado no se realizaron en el 14% de los casos y en el 1.3% no se cuenta con información de si se realizó esta prueba.
+
+```{r}
+df$RESULTADO_BK_RECOD<- str_replace(df$RESULTADO_BK_RECOD, "NO REALIZADO","NR")
+tabla10=table(df$RESULTADO_BK_RECOD)
+tabla10
+prop.table(tabla10)*100
+```
+
+En cuanto a la realización de pruebas de laboratorio para el Diagnostico de la TB se encuentra que en el 30.54% de los casos cuenta con cultivo negativo para micobacterias, mientras que en el 41.3% tuvieron un resultado positivo, por otro lado no se realizó cultivo en el 22.5% de los casos y en el 5.7% no se cuenta con información de si se realizó esta prueba.
+
+```{r}
+df$RESULTADO_CULTIVO_RECOD<- str_replace(df$RESULTADO_CULTIVO_RECOD, "NO REALIZADO","NR")
+tabla11=table(df$RESULTADO_CULTIVO_RECOD)
+tabla11
+prop.table(tabla11)*100
+```
+
+Con relación a pruebas moleculares para micobacterias, se encuentra que en el 45.3% de los casos cuenta con prueba molecular positiva, mientras que en el 15.1% tuvieron un resultado negativo, por otro lado no se realizó esta prueba al paciente en el 0.44% de los casos y en el 39.2% no se cuenta con información de si se realizó o no esta prueba. Al respecto, es importante mencionar que a partir del año 2020 se modificaron los algoritmos diagnosticos para tuberculosis en nuestro país, debido a las limitantes en sensibilidad que representan las baciloscopias y los cultivos en medio solido. A partir de ese año, se implementaron las pruebas moleculares y los cultivos en medio líquido, con el fin de disminuir los tiempos de diagnostico de la enfermedad y garantizar tratamientos oportunos con una buena adherencia  por parte de los pacientes.
+
+```{r}
+df$RESULTADO_PRUEBA_MOL_RECOD<- str_replace(df$RESULTADO_PRUEBA_MOL_RECOD, "NO REALIZADO","NR")
+df$RESULTADO_PRUEBA_MOL_RECOD<- str_replace(df$RESULTADO_PRUEBA_MOL_RECOD, "NO INTERPRETABLE","NI")
+tabla12=table(df$RESULTADO_PRUEBA_MOL_RECOD)
+tabla12
+prop.table(tabla12)*100
+```
+
+Con relacion a la identificación de resistencias se encuentra que la prueba de susceptibilidad a farmacos se le practicó al 48.2% de los pacientes (n= 4.867). Es importante mencionar que esta prueba se priorizaba a personas que cumplian criterios específicos, por tal razón el porcentaje de no realización es del 51.8%. No obstante, con los nuevos algoritmos diagnosticos se realizan de manera simultanea la prueba molecular y la detección de genes de resistencia.
+
+```{r}
+df$PRUEBA_SUSCEPTIBILIDAD_FARMACOS<- str_replace(df$PRUEBA_SUSCEPTIBILIDAD_FARMACOS, "NO REALIZADA","NR")
+df$PRUEBA_SUSCEPTIBILIDAD_FARMACOS<- str_replace(df$PRUEBA_SUSCEPTIBILIDAD_FARMACOS, "PCR EN TIEMPO REAL","PCR-TR")
+```
+
+
+```{r}
+tabla13=table(df$PRUEBA_SUSCEPTIBILIDAD_FARMACOS)
+tabla13
+prop.table(tabla13)*100
+```
+
+De las 4.867 pruebas de resistencia realizadas, no se encontró resistencia en el 48.5% de los casos. De los tipos de resistencia mas frecuentes en el distrito se encuentran: monoresistencia isoniacida 52%, seguido de resistencia a rifampicina 32%, multidrogorresistencia 11.9%, y en menor proporcion se encuentran otro tipo de monorresistencias y polirresistencias. 
+
+
+```{r}
+df$FARMACORRESISTENCIA<- str_replace(df$FARMACORRESISTENCIA, "NO REALIZADA","NR")
+tabla14=table(df$FARMACORRESISTENCIA)
+tabla14
+prop.table(tabla14)*100
+```
+
+La condición de egreso de los pacientes adscritos al programa de TB del distrito en los ultimos 7 años, el 61% corresponde a curaciones (para el caso de TB pulmonar) y tratamientos finalizados, es decir el exito programático.En el 21.5% el paciente falleció durante el tratamiento o el diagnostico de TB, se realizó post mortem. El 5.2% de los pacientes se descartaron, esto sucede cuando se identifican que se trata de micobacterias no tuberculosas. La perdida de seguimiento en los ultimos 7 años para el distrito corresponde al 7.3%. En el 3% corresponde a no evaluados, esto se da porque no fue posible identificar si el paciente logró terminar su tratamiento de manera exitosa, por lo general corresponde a pacientes que residen fuera de Bogotá y no se obtiene realimentación del ente territorial. En menor proporción se encuentran los fracasos terapeuticos 0.6% y exclusiones por resistencias a medicamentos de primera linea para TB 0.92%.
+
+```{r}
+df$CONDICION_EGRESO<- str_replace(df$CONDICION_EGRESO, "EXCLUIDO DE LA COHORTE POR RR","EXCLUIDO RR")
+df$CONDICION_EGRESO<- str_replace(df$CONDICION_EGRESO, "FALLECIDO DURANTE EL TRATAMIENTO","FALLECIDO")
+df$CONDICION_EGRESO<- str_replace(df$CONDICION_EGRESO, "TRATAMIENTO TERMINADO","TTO TERMINADO")
+df$CONDICION_EGRESO<- str_replace(df$CONDICION_EGRESO, "PERDIDA EN EL SEGUIMIENTO","PERDIDA")
+tabla15=table(df$CONDICION_EGRESO)
+tabla15
+prop.table(tabla15)*100
+```
+
+Se encuentra que el 19.7% de los pacientes presentan coinfección con VIH, mientras que en el 74.7% no presentan coinfección y en el 5.6 es desconocido, esto puede deberse a que el paciente fallece o no accede a realizarse las pruebas colaborativas entre TB y VIH.
+
+```{r}
+coinfeccion <- subset(df, df$CONDICION_VIH == "POSITIVO")
+tabla16=table(df$CONDICION_VIH)
+tabla16
+prop.table(tabla16)*100
+```
+
+De los pacientes con coinfección se encuentra que el 77% esta recibiendo terapia antiretroviral, el 21.7 no la recibe y en el 1.1% no se cuenta con esta información.
+
+```{r}
+
+coinfeccion$RECIBE_TAR <- toupper(coinfeccion$RECIBE_TAR)
+tabla17=table(coinfeccion$RECIBE_TAR)
+tabla17
+prop.table(tabla17)*100
+```
+
+En cuanto a las comorbilidades de los pacientes que ingresaron al programa de TB en los ultimos 7 años, se encuentra que:
+
+Hay 33 personas que refieren alcoholismo lo que corresponde al 0.3%.
+Hay 562 personas que presentan cancer lo que corresponde al 5.6%.
+Hay 22 personas reportadas con antecedente de enfermedades cardiovasculares lo que corresponde al 0.2%.
+Hay 124 personas reportadas como consumidoras de SPA lo que corresponde al 1.2%.
+Hay 100 personas cursando con COVID-19 de forma simultánea, lo que corresponde al 0.99%.
+Hay 1760 personas reportadas con Desnutrición lo que corresponde al 17.4%.
+Hay 906 personas reportadas con Diabetes, lo que corresponde al 9%.
+Hay 11 personas reportadas con enfermedades mentales (no se incluye adicciones), lo que corresponde al 0.11%.
+Hay 255 personas reportadas con enfermedades autoinmunes, lo que corresponde al 2.5%.
+Hay 162 personas reportadas con enfermedad hepatica, lo que corresponde al 1.6%.
+Hay 883 personas reportadas con enfermedad renal, lo que corresponde al 8.7%.
+Hay 1082 personas reportadas con Enfermedad Pulmonar Obstructiva Cronica (EPOC), lo que corresponde al 10.7%.
+Hay 137 personas cursando con silicosis, lo que corresponde al 0.99%.
+Hay 79 personas cursando con tabaquismo, lo que corresponde al 0.80%.
+Se encuentran 1087 personas con hipotiroidismo, lo que corresponde al 10.76%
+Se encuentran 1074 personas con otras comorbilidades reportadas, lo que corresponde al 10.63%
+
+```{r}
+#tabla30=table(df$Hipotiroidismo)
+#tabla30
+#prop.table(tabla30)*100
+```
+
+
+```{r}
+c13=ggplot(df,aes(x=Alcoholismo)) + geom_bar() + theme_gray()
+c14=ggplot(df,aes(x=Cancer)) + geom_bar() + theme_gray()
+c15=ggplot(df,aes(x=Cardiovascular)) + geom_bar() + theme_gray()
+ggarrange(c13,c14,c15, labels = c("M", "N", "O"), ncol = 3, nrow = 1)
+```
+
+```{r}
+c16=ggplot(df,aes(x=Consumidor_SPA)) + geom_bar() + theme_gray()
+c17=ggplot(df,aes(x=`Covid-19`)) + geom_bar() + theme_gray()
+c18=ggplot(df,aes(x=Desnutricion)) + geom_bar() + theme_gray()
+ggarrange(c16,c17,c18, labels = c("P", "Q", "R"), ncol = 3, nrow = 1)
+```
+
+```{r}
+c19=ggplot(df,aes(x=Diabetes)) + geom_bar() + theme_gray()
+c20=ggplot(df,aes(x=Enf_Mental)) + geom_bar() + theme_gray()
+c21=ggplot(df,aes(x=Enf_Autoinmune)) + geom_bar() + theme_gray()
+ggarrange(c19,c20,c21, labels = c("S", "T", "U"), ncol = 3, nrow = 1)
+```
+
+```{r}
+c22=ggplot(df,aes(x=Enf_Hepatica)) + geom_bar() + theme_gray()
+c23=ggplot(df,aes(x=Enf_Renal)) + geom_bar() + theme_gray()
+c24=ggplot(df,aes(x=EPOC)) + geom_bar() + theme_gray()
+ggarrange(c22,c23,c24, labels = c("V", "W", "X"), ncol = 3, nrow = 1)
+```
+
+```{r}
+c25=ggplot(df,aes(x=Hipotiroidismo)) + geom_bar() + theme_gray()
+c26=ggplot(df,aes(x=Otra_Enf)) + geom_bar() + theme_gray()
+c27=ggplot(df,aes(x=Silicosis)) + geom_bar() + theme_gray()
+ggarrange(c25, c26, c27,  labels = c("Y", "Z", "AA"), ncol = 3, nrow = 1)
+
+```
+
+```{r}
+c28=ggplot(df,aes(x=Tabaquismo)) + geom_bar() + theme_gray()
+ggarrange(c28, labels = c("AB"), ncol = 1, nrow = 1)
+```
+
+En cuanto a la modalidad de tratamiento, esta variable se comenzó a diligenciar por parte del programa de TB desde el año 2020 (año pandemico dadas las dinamicas que esto generó a la atención de pacientes desde el sistema de salud); por esta razón el 55% de los registros no cuenta con esta información. No obstante, para los ultimos dos años el TDO en IPS representa el 34% de las modalidades tratamiento seguido del TDO hospitalario 7.8% y TDO virtual 1.33%
+
+```{r}
+df$MODALIDAD_TDO<- str_replace(df$MODALIDAD_TDO, "TDO VIRTUAL","VIRTUAL")
+df$MODALIDAD_TDO<- str_replace(df$MODALIDAD_TDO, "TDO COMUNITARIO","COMUNITARIO")
+df$MODALIDAD_TDO<- str_replace(df$MODALIDAD_TDO, "TDO DOMICILIARIO","DOMICILIARIO")
+df$MODALIDAD_TDO<- str_replace(df$MODALIDAD_TDO, "TDO EN IPS","IPS")
+df$MODALIDAD_TDO<- str_replace(df$MODALIDAD_TDO, "TDO HOSPITALARIO","HOSPITALARIO")
+df$MODALIDAD_TDO <- toupper(df$MODALIDAD_TDO)
+```
+
+
+```{r}
+
+tabla18=table(df$MODALIDAD_TDO)
+tabla18
+prop.table(tabla18)*100
+```
+
+En el 22.1% de los casos los pacientes no reciben ningun tipo de subsidio, seguido de no aplica a subsisdio 20.9%. De quienes si reciben algun tipo de apoyo el mas frecuente es el subsidio alimentario 0.92%, seguido d eotros subsidios 0.5%.
+
+```{r}
+df$PROGRAMAS_PROTECC_SOCIAL<- str_replace(df$PROGRAMAS_PROTECC_SOCIAL, "Cuenta con varios subsidios de apoyo","Varios")
+df$PROGRAMAS_PROTECC_SOCIAL<- str_replace(df$PROGRAMAS_PROTECC_SOCIAL, "Subsidio alimentario","Alimentario")
+df$PROGRAMAS_PROTECC_SOCIAL<- str_replace(df$PROGRAMAS_PROTECC_SOCIAL, "Subsidio de transporte","Transporte")
+df$PROGRAMAS_PROTECC_SOCIAL<- str_replace(df$PROGRAMAS_PROTECC_SOCIAL, "Subsidio educativo","Educativo")
+df$PROGRAMAS_PROTECC_SOCIAL<- str_replace(df$PROGRAMAS_PROTECC_SOCIAL, "No aplica a subsidios","NA")
+df$PROGRAMAS_PROTECC_SOCIAL<- str_replace(df$PROGRAMAS_PROTECC_SOCIAL, "No recibe ninguno","Ninguno")
+df$PROGRAMAS_PROTECC_SOCIAL<- str_replace(df$PROGRAMAS_PROTECC_SOCIAL, "Subsidio de desempleo","Desempleo")
+df$PROGRAMAS_PROTECC_SOCIAL<- str_replace(df$PROGRAMAS_PROTECC_SOCIAL, "Subsidio monetario","Monetario")
+```
+
+
+```{r}
+#base_analisis_R$MODALIDAD_TDO <- toupper(base_analisis_R$MODALIDAD_TDO)
+tabla19=table(df$PROGRAMAS_PROTECC_SOCIAL)
+tabla19
+prop.table(tabla19)*100
+```
+En cuanto a las reacciones adversas al tratamiento tetraconjugado, se describen un total de 49, de las cuales las reacciones graves son las mas frecuentes con 0.41%, seguido de moderadas 0.39%. Lo que permite deducir que estos medicamentos son bastantes seguros ya que el 98.9% no reportó ningun tipo de reacción.
+
+
+```{r}
+df$REACCIONES_ADVERSAS_TTO<- str_replace(df$REACCIONES_ADVERSAS_TTO, "Moderado","Moderada")
+df$REACCIONES_ADVERSAS_TTO<- str_replace(df$REACCIONES_ADVERSAS_TTO, "leve","Leve")
+
+tabla20=table(df$REACCIONES_ADVERSAS_TTO)
+tabla20
+prop.table(tabla20)*100
+```
+
+eL 98.9% de los pacientes diagnosticados se captaron a través de Busqueda Activa Institucional. El 0.92% por busqueda activa derivada del trabajador de la salud y en menor proporción se reporta durante el estudio de contactos 0.08% y remitido por el CNE 0.02%.
+
+
+```{r}
+df$METODOLOGIA_CAPTACION<- str_replace(df$METODOLOGIA_CAPTACION, "Busqueda trabajador salud","BTS")
+df$METODOLOGIA_CAPTACION<- str_replace(df$METODOLOGIA_CAPTACION, "Durante estudio de contactos","Contactos")
+df$METODOLOGIA_CAPTACION<- str_replace(df$METODOLOGIA_CAPTACION, "Remitido por CNE","CNE")
+```
+
+
+```{r}
+tabla21=table(df$METODOLOGIA_CAPTACION)
+tabla21
+prop.table(tabla21)*100
+```
+
+##ANALISIS BIVARIADO
+
+Se realiza cruce con la variable objetivo y las variables de la base de datos con el fin de identificar posibles relaciones entre ellas.
+
+```{r}
+t1 <- table1::table1(~INGRESO_TTO + SEXO + EDAD + REGIMEN_AFILIACION + TIPO_TB + CONDICION_INGRESO + CONDICION_VIH + RESULTADO_BK_RECOD + RESULTADO_CULTIVO_RECOD + RESULTADO_PRUEBA_MOL_RECOD + PRUEBA_SUSCEPTIBILIDAD_FARMACOS + FARMACORRESISTENCIA + Alcoholismo + Cancer + Cardiovascular + Consumidor_SPA  + Desnutricion + Diabetes + Enf_Mental + Enf_Autoinmune + Enf_Hepatica + Enf_Renal + EPOC + Silicosis + Tabaquismo + Hipotiroidismo + Otra_Enf + MODALIDAD_TDO + PROGRAMAS_PROTECC_SOCIAL + REACCIONES_ADVERSAS_TTO + METODOLOGIA_CAPTACION +PERTENENCIA_ETNICA + gp_discapa + gp_desplaz + gp_migrant + gp_carcela + gp_gestan + gp_indigen + gp_pobicbf + gp_psiquia + gp_vic_vio + trabajador_salud + gp_otros + LOC_RES + LOC_DX + LOCALIZACION_EXTRA | CONDICION_EGRESO, data = df )
+t1
+```
+
+Para el grupo de perdida de seguimiento se encuentra un total de 739 pacientes entre 2016 y 2022. De los cuales el 95.1% lograron ingresar al programa distrital de tuberculosis, es decir que iniciaron tratamiento. Al comparar estos resultados con las otras condiciones de egreso se encuentran porcentajes similares a excepción de los fallecidos, los cuales varios de ellos el diagnostico de TB se realiza postmortem por lo tanto no hay inicio de tratamiento. 
+Con relación a la variable sexo, en los pacientes con pérdida de seguimiento se evidencia que el 72.9% corresponde a hombres, un porcentaje ligeramente mayor al compararlo con otras condiciones de egreso (66.2%), este comportamiento se observa también en los fallecidos durante el tratamiento 72.2% y no evaluados 76.4%.  
+En cuanto a la edad, se evidencia que de forma general los pacientes enferman de TB sobre los 50 años (media y mediana) no obstante para el grupo de perdida de seguimiento, la mediana se ubica sobre los 36 años con una media de 41 años. Es decir, las personas mas jóvenes son quienes no tienen adherencia al tratamiento. 
+A su vez, frente al régimen de afiliación al SGSSS, se encuentra que el régimen subsidiado es donde se concentra la población que no tiene adherencia al tratamiento de TB 46.7%, respecto al total de condiciones de egreso 30.6%. De igual manera, las personas sin aseguramiento al SGSSS tienen un porcentaje mayor de perdida de seguimiento 18.2% respecto a las otras condiciones de egreso 6.6%. Así mismo, este grupo presenta el menor porcentaje de pacientes afiliados al régimen contributivo 30.4%, respecto al total de condiciones de egreso 55.4%, lo que demuestra que las EAPB realizan acciones de seguimiento a su población afiliada diagnosticada para generar adherencia terapéutica.
+Al analizar el tipo de tuberculosis se identifica que las formas pulmonares predominan en las perdidas de seguimiento 76.8%, respecto a las otras condiciones de egreso 68.7%.  Este comportamiento se observa también en los fracasos 80.3% y las exclusiones por farmacorresistencia 77.4%. Respecto a las formas extrapulmonares, se evidencia una ligera diferencia en la localización anatómica para el grupo de perdida de seguimiento tipo de TB ganglionar 4.6% frente a las demás condiciones de egreso 3.6%. 
+En cuanto a la condición de ingreso al programa de TB, para los pacientes con perdida de seguimiento, se encuentra que el 11.1% corresponden a reingresos por perdida de seguimiento frente a 2.1 de otras condiciones de egreso y el 6.5% a otros previamente tratados versus  3.1% de las otras condiciones de egreso, es decir que quienes ya han estado en tratamiento para TB y no tuvieron adherencia, es mas probable que vuelvan a tener perdida de seguimiento en futuros tratamientos. 
+Se identifica frente a la coinfección con VIH que los pacientes que presentan coinfección en el grupo de perdida de seguimiento es mayor 32.4%, que en el resto de condiciones de egreso 19.8% a excepción de los casos descartados 33.7%.
+Frente a las prueba diagnosticas de baciloscopia, cultivo y prueba molecular, se observa un porcentaje ligeramente mayor para positividad en estas pruebas que entre el grupo de perdida de seguimiento y las otras condiciones de egreso (baciloscopia positiva 39.2% vs 30.8%, Cultivo  45.8% vs 41.3%, prueba molecular 51.4% vs 45.2%)
+En la prueba de susceptibilidad a farmacos no se evidencian mayores diferencias entre el tipo de prueba realizada al grupo de perdida de seguimiento y las otras condiciones de egreso.Lo mismo sucede con los tipos de farmacorresistencia, es importante aclarar que los casos de TB farmacorresistente, el seguimiento se realiza en una base de datos diferente a la de TB sensible. Por tanto, las perdidas de seguimiento de casos con TB resistente no son evaluados en el presente proyecto.
+Dentro de las comorbilidades se evidenció mayor porcentaje para el grupo de perdida de seguimiento frente a las otras condiciones de egreso en las siguientes: Consumidor_SPA 6.6% vs 2.1%, Enf_mental 0.5% vs 0.1%, Desnutrición 22% vs 17.4%, Tabaquismo 1.6% vs 0.8% y alcoholismo 0.5% vs 0.3%.
+En cuanto a la modalidad del tratamiento directamente observado (TDO), el 37.1% de los pacientes que tienen perdida de seguimiento lo realizan en la modalidad supervisión en IPS, un poco mayor frente a las demás condiciones de egreso 34.5%. 
+Dentro de los programas de protección social se evidencia que las personas con perdida de seguimiento tuvieron acceso a subsidio alimentario en 1.9% mayor, frente al resto de condiciones de egreso 0.9% a excepción de pacientes con fracaso en el tratamiento 3.3%. 
+En cuanto a la descripción de reacciones adversas de los pacientes al tratamiento tetraconjugado, se evidencia un mayor porcentaje de reacciones graves (0.4%) y moderadas (0.5%), frente a pacientes de otras condiciones de egreso (0.2% respectivamente).
+Frente a la metodologia de captación no se evidencian diferencias entre los pacientes con perdidas de seguimiento frente a las demas condiciones de egreso. 
+Dentro de la pertenencia étnica se identifica que los indígenas 3% y afrocolombianos 1.6%, presentan un mayor porcentaje en perdida de seguimiento frente a las demás condiciones de egreso (1.5% y 0.8%, respectivamente). En los indígenas este porcentaje solamente se supera para el grupo de no evaluados 4.2%, dado que regresan a sus comunidades. Mientras que en los afrocolombianos, se reporta un mayor porcentaje frente al grupo de excluidos por Farmacorresistencia y es igual el porcentaje frente al grupo de no evaluados  y fracasos. 
+ Se evidencia un mayor porcentaje de perdida de seguimiento en las siguientes poblaciones especiales  frente a las demás condiciones de egreso:  desplazados 2.2% vs 0.8%, migrantes 10.2% vs 5.2%, carcelarios 4.3% vs 3.4%, habitantes de calle 27.6% vs 5.4%, población ICBF 0.3% vs 0.1%, población psiquiátrica 0.5% vs 0.1%, víctima de la violencia de conflicto armado 0.5% vs 0.2% y gestantes 0.5% vs 0.2%
+Dentro de las localidades de residencia de los pacientes, se evidencia una mayor perdida de seguimiento para quienes residen en las siguientes localidades en comparación con las otras condiciones de egreso: Antonio Nariño 3.3% vs 1.5%, ciudad bolivar 9.6% vs 6.6%, Los mártires 6% vs 2.5%, Santa fe 6.1% vs 2.9% y tunjuelito 2.6% vs 2%; los casos sin dato 10.2% vs 3.4% que pueden corresponder a habitantes de calle o población flotante. 
+Dentro de las localidades de diagnóstico de los pacientes, se evidencia una mayor pérdida de seguimiento para quienes son diagnosticados en IPS ubicadas en las siguientes localidades en comparación con las otras condiciones de egreso: Antonio Nariño 18.3% vs 7.7%, Barrios Unidos 4.3% vs 3.7%, Engativá 5.1% vs 3.7%, Santa fe 3.4% vs 0.9% y  Tunjuelito 4.5% vs 3.6%. 
+
+```{r}
+loc_ajuste <- subset(base_analisis_R)
+loc_ajuste
+```
+
+```{r}
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Antonio Nariño","CO")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Barrios Unidos","NORTE")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Bosa","SO")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Chapinero","NORTE")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Ciudad Bolivar","SUR")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Engativa","NORTE")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Fontibon","SO")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Fuera de Bogota","FDB")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Kennedy","SO")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "La Candelaria","CO")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Los Martires","CO")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Puente Aranda","SO")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Rafael Uribe Uribe","CO")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "San Cristobal","CO")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Santafe","CO")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Suba","NORTE")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Teusaquillo","NORTE")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Tunjuelito","SUR")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Usaquen","NORTE")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Usme","SUR")
+loc_ajuste$LOC_RES<- str_replace(loc_ajuste$LOC_RES, "Sumapaz","SUR")
+
+```
+
+
+```{r}
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "Antonio Nariño","CO")
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "Barrios Unidos","NORTE")
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "Bosa","SO")
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "Chapinero","NORTE")
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "Ciudad Bolivar","SUR")
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "Engativa","NORTE")
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "Fontibon","SO")
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "Kennedy","SO")
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "La Candelaria","CO")
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "Los Martires","CO")
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "Puente Aranda","SO")
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "Rafael Uribe Uribe","CO")
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "San Cristobal","CO")
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "Santafe","CO")
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "Suba","NORTE")
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "Teusaquillo","NORTE")
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "Tunjuelito","SUR")
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "Usaquen","NORTE")
+loc_ajuste$LOC_DX<- str_replace(loc_ajuste$LOC_DX, "Usme","SUR")
+```
+
+
+
+```{r}
+t1 <- table1::table1(~INGRESO_TTO + SEXO + EDAD + REGIMEN_AFILIACION + TIPO_TB + CONDICION_INGRESO + CONDICION_VIH + RESULTADO_BK_RECOD + RESULTADO_CULTIVO_RECOD + RESULTADO_PRUEBA_MOL_RECOD + PRUEBA_SUSCEPTIBILIDAD_FARMACOS + FARMACORRESISTENCIA + Alcoholismo + Cancer + Cardiovascular + Consumidor_SPA  + Desnutricion + Diabetes + Enf_Mental + Enf_Autoinmune + Enf_Hepatica + Enf_Renal + EPOC + Silicosis + Tabaquismo + Hipotiroidismo + Otra_Enf + MODALIDAD_TDO + PROGRAMAS_PROTECC_SOCIAL + REACCIONES_ADVERSAS_TTO + METODOLOGIA_CAPTACION +PERTENENCIA_ETNICA + gp_discapa + gp_desplaz + gp_migrant + gp_carcela + gp_gestan + gp_indigen + gp_pobicbf + gp_psiquia + gp_vic_vio + trabajador_salud + gp_otros + LOC_RES + LOC_DX + LOCALIZACION_EXTRA | PERDIDA_SEGUIMIENTO, data = loc_ajuste)
+t1
+```
+
+
+
+*Seleccion de variables*
+
+```{r}
+df2<- loc_ajuste[,c("ID", "SEXO", "EDAD", "PERTENENCIA_ETNICA", "gp_discapa", "gp_desplaz", "gp_migrant", "gp_carcela", "gp_gestan", "gp_indigen", "gp_pobicbf", "gp_psiquia", "LOC_RES", "LOC_DX", "REGIMEN_AFILIACION", "TIPO_TB", "LOCALIZACION_EXTRA", "CONDICION_INGRESO", "RESULTADO_BK_RECOD", "RESULTADO_PRUEBA_MOL_RECOD", "PRUEBA_SUSCEPTIBILIDAD_FARMACOS", "CONDICION_VIH", "Alcoholismo", "Consumidor_SPA", "Desnutricion", "Enf_Mental","Tabaquismo", "PROGRAMAS_PROTECC_SOCIAL", "REACCIONES_ADVERSAS_TTO", "CONDICION_EGRESO", "PERDIDA_SEGUIMIENTO")]
+bivariado<-as.data.frame(df2)
+head(bivariado, 5)
+```
+
+## DESCRIPTIVO BIVARIADO
+
+Se contrasta la variable perdida de seguimiento con la variable cuantitativa EDAD:
+
+```{r}
+g1=ggplot(data = bivariado, aes(x = PERDIDA_SEGUIMIENTO, y = EDAD)) +
+  geom_boxplot(fill = "#D0D1E6", colour = "black")+geom_jitter(width = 0.3,size = 0.8)
+ggarrange(g1, labels = c("A"),ncol = 2, nrow = 1)
+```
+
+Se comprueba normalidad para la variable Edad, se encuentra que cumple criterio de normalidad acorde con p valor el cual tiene significacion estadistica.
+
+```{r}
+library("nortest")
+lillie.test(x=bivariado$EDAD)
+
+```
+Se procede a realizar comparación de medias en la variable Edad con la prueba T de student para los grupos con perdida de seguimienro y sin perida de seguimiento
+
+```{r}
+SIN_PSEG <- subset(bivariado$EDAD, bivariado$PERDIDA_SEGUIMIENTO == "NO")
+PSEG <-subset(bivariado$EDAD, bivariado$PERDIDA_SEGUIMIENTO == "SI")
+```
+
+```{r}
+test <- t.test(SIN_PSEG,PSEG)
+print (test)
+```
+Se encuentra diferencia estadística, es decir que la media de la edad del grupo con perdida de seguimiento es diferente de las otras condiciones de egreso y tiene significancia estadística
+
+```{r}
+t2 <- table1::table1(~EDAD | PERDIDA_SEGUIMIENTO, data = bivariado )
+t2
+```
+
+
+Se generan tablas de contingencia para las variables categoricas:
+
+*Perdida seguimiento vs Sexo*
+
+```{r}
+v1 = table(df2$PERDIDA_SEGUIMIENTO, df2$SEXO)
+rownames(v1) <- c("SI", "NO")
+colnames(v1) <- c("M", "H") 
+addmargins(v1)
+```
+
+```{r}
+library(CGPfunctions)
+PlotXTabs2(data=df2,x=SEXO,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+library(vcd)
+chisq.test(v1)
+fisher.test(v1)
+assocstats(v1)
+```
+
+
+En este caso, el valor de p de Chi cuadrado es significante (p-value = 7.528e-05) por lo tanto se rechaza hipotesis nula y se acepta hipotesis alterna, donde se evidencia que la edad influye en la perdida de seguimiento de los pacientes. Los índice de Cramer  y Phi: 0.04 determinan una asociación pequeña entre las variables.
+
+
+*Perdida seguimiento vs Regimen de Afiliacion*
+
+```{r}
+v2 = table(df2$PERDIDA_SEGUIMIENTO, df2$REGIMEN_AFILIACION)
+rownames(v2) <- c("SI", "NO")
+colnames(v2) <- c("C", "E", "N", "P", "S")              
+addmargins(v2)
+```
+
+```{r}
+PlotXTabs2(data=df,x=REGIMEN_AFILIACION,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v2)
+#fisher.test(v2)
+assocstats(v2)
+```
+
+
+En este caso, el valor de p de Chi cuadrado es significante (p-value < 2.2e-16) por lo tanto se rechaza hipotesis nula y se acepta hipotesis alterna, donde se evidencia que el regimen de afiliacion influye en la perdida de seguimiento de los pacientes. El índice de Cramer (0.18) determina una asociación pequeña entre las variables.
+
+
+*Perdida seguimiento vs Tipo Tuberculosis*
+
+```{r}
+v3 = table(df2$PERDIDA_SEGUIMIENTO, df2$TIPO_TB)
+rownames(v3) <- c("SI", "NO")
+colnames(v3) <- c("EXTRAPULMONAR", "PULMONAR")              
+addmargins(v3)
+```
+
+```{r}
+PlotXTabs2(data=df2,x=TIPO_TB,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v3)
+#fisher.test(v3)
+assocstats(v3)
+```
+
+
+En este caso, el valor de p de Chi cuadrado es significante (p-value < 2.2e-16) por lo tanto se rechaza hipotesis nula y se acepta hipotesis alterna, donde se evidencia que el tipo de tuberculosis influye en la perdida de seguimiento de los pacientes. El índice de Cramer (0.19) determina una asociación pequeña entre las variables.
+
+
+ *Perdida seguimiento vs coinfeccion VIH*
+
+```{r}
+v5 = table(df2$PERDIDA_SEGUIMIENTO, df2$CONDICION_VIH)
+rownames(v5) <- c("SI", "NO")
+colnames(v5) <- c("DESCONOCIDO", "NEGATIVO", "POSITIVO" )              
+addmargins(v5)
+```
+
+```{r}
+PlotXTabs2(data=df2,x=CONDICION_VIH,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v5)
+fisher.test(v5)
+assocstats(v5)
+```
+
+
+En este caso, el valor de p de Chi cuadrado es significante (p-value < 2.2e-16) por lo tanto se rechaza hipotesis nula y se acepta hipotesis alterna, donde se evidencia que la condición de VIH influye en la perdida de seguimiento de los pacientes. El índice de Cramer (0.095) determina una asociación pequeña entre las variables.
+
+
+*Perdida seguimiento vs Resultado BK*
+
+```{r}
+v6 = table(df2$PERDIDA_SEGUIMIENTO, df2$RESULTADO_BK_RECOD)
+rownames(v6) <- c("SI", "NO")
+colnames(v6) <- c("NEGATIVO", "NR", "POSITIVO", "SD" )              
+addmargins(v6)
+```
+
+```{r}
+PlotXTabs2(data=df2,x=RESULTADO_BK_RECOD,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v6)
+fisher.test(v6)
+assocstats(v6)
+```
+
+En este caso, el valor de p de Chi cuadrado es significante (p-value = 7.151e-08) por lo tanto se rechaza hipotesis nula y se acepta hipotesis alterna, donde se evidencia que el resultado de la baciloscopia influye en la perdida de seguimiento de los pacientes. El índice de Cramer (0.06) determina una asociación pequeña entre las variables
+
+
+*Perdida seguimiento vs Resultado Prueba Molecular*
+
+```{r}
+v7 = table(df2$PERDIDA_SEGUIMIENTO, df2$RESULTADO_PRUEBA_MOL_RECOD)
+rownames(v7) <- c("SI", "NO")
+colnames(v7) <- c("NEGATIVO", "NI", "NR", "POSITIVO", "SD" )              
+addmargins(v7)
+```
+
+```{r}
+PlotXTabs2(data=df,x=RESULTADO_PRUEBA_MOL_RECOD,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v7)
+fisher.test(v7)
+assocstats(v7)
+```
+
+En este caso, el valor de p de Chi cuadrado es significante (p-value = 0.01178) por lo tanto se rechaza hipotesis nula y se acepta hipotesis alterna, donde se evidencia que el resultado de la prueba molecular influye en la perdida de seguimiento de los pacientes. El índice de Cramer (0.036) determina una asociación muy pequeña entre las variables cercana a cero.
+
+
+*Perdida seguimiento vs Resultado Prueba Susceptibilidad a farmacos*
+
+```{r}
+v8 = table(df$PERDIDA_SEGUIMIENTO, df2$PRUEBA_SUSCEPTIBILIDAD_FARMACOS)
+rownames(v8) <- c("SI", "NO")
+colnames(v8) <- c("BACTEC MGIT", "LIPA", "NR", "PCR-TR")              
+addmargins(v8)
+```
+
+```{r}
+PlotXTabs2(data=df,x=PRUEBA_SUSCEPTIBILIDAD_FARMACOS,y=PERDIDA_SEGUIMIENTO)
+```
+```{r}
+chisq.test(v8)
+fisher.test(v8)
+assocstats(v8)
+```
+
+En este caso, el valor de p de Chi cuadrado es significante (p-value = 5.994e-07) por lo tanto se rechaza hipotesis nula y se acepta hipotesis alterna, donde se evidencia que el resultado de la prueba de susceptibilidad a farmacos influye en la perdida de seguimiento de los pacientes. El índice de Cramer (0.056) determina una asociación muy pequeña entre las variables cercana a cero.
+
+*Perdida seguimiento vs Condición de ingreso*
+
+```{r}
+v9 = table(df$PERDIDA_SEGUIMIENTO, df$CONDICION_INGRESO)
+rownames(v9) <- c("SI", "NO")
+colnames(v9) <- c("NUEVO", "OPT", "RTF", "RTPS", "RTR", "REMITIDO")              
+addmargins(v9)
+```
+
+```{r}
+PlotXTabs2(data=df,x=CONDICION_INGRESO,y=PERDIDA_SEGUIMIENTO)
+```
+
+
+```{r}
+chisq.test(v9)
+#fisher.test(v9)
+assocstats(v9)
+```
+
+En este caso, el valor de p de Chi cuadrado no es significante (p-value < 2.2e-16) por lo tanto se acepta hipotesis nula y se rechaza hipotesis alterna, donde se evidencia que la condicion de ingreso influye en la perdida de seguimiento de los pacientes. El índice de Cramer (0.19) determina que hay una asociación pequeña entre las variables.
+
+
+*Perdida seguimiento vs Comorbilidad Alcoholismo*
+
+```{r}
+v10 = table(df2$PERDIDA_SEGUIMIENTO, df2$Alcoholismo)
+rownames(v10) <- c("SI", "NO")
+colnames(v10) <- c("SI", "NO")              
+addmargins(v10)
+```
+
+```{r}
+PlotXTabs2(data=df2,x=Alcoholismo,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v10)
+fisher.test(v10)
+assocstats(v10)
+```
+
+En este caso, el valor de p de Chi cuadrado no es significante (p-value = 0.4655) por lo tanto se acepta hipotesis nula y se rechaza hipotesis alterna, donde se evidencia que el alcoholismo no influye en la perdida de seguimiento de los pacientes. Los índices de Cramer y Phi (0.0011) determinan que no hay asociación entre las variables.
+
+
+*Perdida seguimiento vs Comorbilidad Consumo de SPA*
+
+```{r}
+v11 = table(df2$PERDIDA_SEGUIMIENTO, df2$Consumidor_SPA)
+rownames(v11) <- c("SI", "NO")
+colnames(v11) <- c("SI", "NO")              
+addmargins(v11)
+```
+
+
+```{r}
+PlotXTabs2(data=df2,x=Consumidor_SPA,y=PERDIDA_SEGUIMIENTO)
+```
+
+
+```{r}
+chisq.test(v11)
+fisher.test(v11)
+assocstats(v11)
+```
+
+En este caso, el valor de p de Chi cuadrado es significante (p-value < 2.2e-16) por lo tanto se rechaza hipotesis nula y se acepta hipotesis alterna, donde se evidencia que el consumo de SPA influye en la perdida de seguimiento de los pacientes. Los índice de Cramer y Phi (0.138) determinan que hay una asociación pequeña entre las variables.
+
+
+*Perdida seguimiento vs Comorbilidad Desnutricion*
+
+```{r}
+v12 = table(df2$PERDIDA_SEGUIMIENTO, df2$Desnutricion)
+rownames(v12) <- c("SI", "NO")
+colnames(v12) <- c("SI", "NO")              
+addmargins(v12)
+```
+
+```{r}
+PlotXTabs2(data=df2,x=Desnutricion,y=PERDIDA_SEGUIMIENTO)
+```
+
+
+```{r}
+chisq.test(v12)
+fisher.test(v12)
+assocstats(v12)
+```
+
+En este caso, el valor de p de Chi cuadrado no es significante (p-value = 0.0009044) por lo tanto se acepta hipotesis nula y se rechaza hipotesis alterna, donde se evidencia que la desnutrición influye en la perdida de seguimiento de los pacientes. Los índices de Cramer y Phi (0.034) determinan que hay una asociación muy pequeña entre las variables.
+
+
+*Perdida seguimiento vs Comorbilidad Enfermedad mental*
+
+```{r}
+v13 = table(df2$PERDIDA_SEGUIMIENTO, df2$Enf_Mental)
+rownames(v13) <- c("SI", "NO")
+colnames(v13) <- c("SI", "NO")              
+addmargins(v13)
+```
+
+
+```{r}
+PlotXTabs2(data=df2,x=Enf_Mental,y=PERDIDA_SEGUIMIENTO)
+```
+
+
+```{r}
+chisq.test(v13)
+fisher.test(v13)
+assocstats(v13)
+```
+
+En este caso, el valor de p de Chi cuadrado no es significante (p-value = 0.001773) por lo tanto se acepta hipotesis nula y se rechaza hipotesis alterna, donde se evidencia que la presencia de una enfermedad mental influye en la perdida de seguimiento de los pacientes. Los índice de Cramer y Phi (0.037) determinan que hay una asociación muy pequeña entre las variables.
+
+
+*Perdida seguimiento vs Comorbilidad Tabaquismo*
+
+```{r}
+v14 = table(df2$PERDIDA_SEGUIMIENTO, df2$Tabaquismo)
+rownames(v14) <- c("SI", "NO")
+colnames(v14) <- c("SI", "NO")              
+addmargins(v14)
+```
+
+```{r}
+PlotXTabs2(data=df2,x=Tabaquismo,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v14)
+fisher.test(v14)
+assocstats(v14)
+```
+
+En este caso, el valor de p de Chi cuadrado no es significante (p-value = 0.0129) por lo tanto se acepta hipotesis nula y se rechaza hipotesis alterna, donde se evidencia que la presencia de tabaquismo influye en la perdida de seguimiento de los pacientes. Los índices de Cramer Y Phi (0.027) determinan que hay una asociación muy pequeña entre las variables.
+
+
+*Perdida seguimiento vs Programas de proteccion social*
+
+```{r}
+v15 = table(df$PERDIDA_SEGUIMIENTO, df$PROGRAMAS_PROTECC_SOCIAL)
+rownames(v15) <- c("SI", "NO")
+colnames(v15) <- c("Varios", "No evaluado", "Alimentario", "Transporte", "Educativo", "NA", "Ninguno", "Desempleo", "Vivienda", "Monetario")              
+addmargins(v15)
+```
+
+
+```{r}
+PlotXTabs2(data=df,x=PROGRAMAS_PROTECC_SOCIAL,y=PERDIDA_SEGUIMIENTO)
+```
+
+
+```{r}
+chisq.test(v15)
+#fisher.test(v15)
+assocstats(v15)
+```
+
+En este caso, el valor de p de Chi cuadrado es significante (p-value = 0.01469) por lo tanto se rechaza hipotesis nula y se acepta hipotesis alterna, donde se evidencia que el pertenecer a un programa de proteccion social influye en la perdida de seguimiento de los pacientes. El índice de Cramer (0.045) determina que hay una asociación muy pequeña entre las variables.
+
+
+*Perdida seguimiento vs Reacciones adversas*
+
+```{r}
+v16 = table(df$PERDIDA_SEGUIMIENTO, df$REACCIONES_ADVERSAS_TTO)
+rownames(v16) <- c("SI", "NO")
+colnames(v16) <- c("Grave", "Leve", "Moderada", "Ninguna", "SD")              
+addmargins(v16)
+```
+
+```{r}
+PlotXTabs2(data=df,x=REACCIONES_ADVERSAS_TTO,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v16)
+fisher.test(v16)
+assocstats(v16)
+```
+
+En este caso, el valor de p de Chi cuadrado no es significante (p-value = 0.06234) por lo tanto se acepta hipotesis nula y se rechaza hipotesis alterna, donde se evidencia que las reacciones adversas a tratamiento no influyen en la perdida de seguimiento de los pacientes. Los índices de Cramer Y Phi (0.03) determinan que hay una asociación muy pequeña entre las variables.
+
+
+*Perdida seguimiento vs Pertenencia étnica*
+
+```{r}
+df2$PERTENENCIA_ETNICA<- str_replace(df2$PERTENENCIA_ETNICA, "NEGRO, MULATO, AFROCOLOMBIANO","AFRO")
+df2$PERTENENCIA_ETNICA<- str_replace(df2$PERTENENCIA_ETNICA, "ROOM (GITANO)","ROOM")
+```
+
+
+```{r}
+v17 = table(df2$PERDIDA_SEGUIMIENTO, df2$PERTENENCIA_ETNICA)
+rownames(v17) <- c("SI", "NO")
+colnames(v17) <- c("INDIGENA", "AFRO", "OTRO", "PALENQUERO", "RAIZAL", "ROOM")              
+addmargins(v17)
+```
+
+```{r}
+PlotXTabs2(data=df2,x=PERTENENCIA_ETNICA,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v17)
+fisher.test(v17)
+assocstats(v17)
+```
+En este caso, el valor de p de Chi cuadrado es significante (p-value = 0.002056) por lo tanto se rechaza hipotesis nula y se acepta hipotesis alterna, donde se evidencia que tener alguna pertenencia étnica influye en la perdida de seguimiento de los pacientes. El índice de Cramer (0.043) determina que hay una asociación muy pequeña entre las variables.
+
+
+*Perdida seguimiento vs Grupo poblacional:discapacidad*
+
+```{r}
+v18 = table(df2$PERDIDA_SEGUIMIENTO, df2$gp_discapa)
+rownames(v18) <- c("SI", "NO")
+colnames(v18) <- c("SI", "NO")              
+addmargins(v18)
+```
+
+```{r}
+PlotXTabs2(data=df2,x=gp_discapa,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v18)
+fisher.test(v18)
+assocstats(v18)
+```
+
+En este caso, el valor de p de Chi cuadrado no es significante (p-value = 0.1464) por lo tanto se  acepta hipotesis nula y se rechaza hipotesis alterna, donde se evidencia que tener alguna condicion de discapacidad no influye en la perdida de seguimiento de los pacientes. Los índices de Cramer y Phi (0.0016) determinan que no hay una asociación entre las variables.
+
+
+*Perdida seguimiento vs Grupo poblacional:desplazado*
+
+```{r}
+v19 = table(df2$PERDIDA_SEGUIMIENTO, df2$gp_desplaz)
+rownames(v19) <- c("SI", "NO")
+colnames(v19) <- c("SI", "NO")              
+addmargins(v19)
+```
+
+```{r}
+PlotXTabs2(data=df2,x=gp_desplaz,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v19)
+fisher.test(v19)
+assocstats(v19)
+```
+
+En este caso, el valor de p de Chi cuadrado es significante (p-value = 2.414e-05) por lo tanto se rechaza hipotesis nula y se acepta hipotesis alterna, donde se evidencia que ser desplazado influye en la perdida de seguimiento de los pacientes. El índice de Cramer y Phi (0.043) determinan que hay una asociación muy pequeña entre las variables.
+
+
+*Perdida seguimiento vs Grupo poblacional: migrante*
+
+```{r}
+v20 = table(df2$PERDIDA_SEGUIMIENTO, df2$gp_migrant)
+rownames(v20) <- c("SI", "NO")
+colnames(v20) <- c("SI", "NO")              
+addmargins(v20)
+```
+
+```{r}
+PlotXTabs2(data=df2,x=gp_migrant,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v20)
+fisher.test(v20)
+assocstats(v20)
+```
+
+En este caso, el valor de p de Chi cuadrado es significante (p-value = 3.786e-10) por lo tanto se rechaza hipotesis nula y se acepta hipotesis alterna, donde se evidencia que ser migrante influye en la perdida de seguimiento de los pacientes. El índice de Cramer y Phi (0.063) determinan que hay una asociación muy pequeña entre las variables.
+
+
+*Perdida seguimiento vs Grupo poblacional: carcelario*
+
+```{r}
+v21 = table(df2$PERDIDA_SEGUIMIENTO, df2$gp_carcela)
+rownames(v21) <- c("SI", "NO")
+colnames(v21) <- c("SI", "NO")              
+addmargins(v21)
+```
+
+```{r}
+PlotXTabs2(data=df2,x=gp_carcela,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v21)
+fisher.test(v21)
+assocstats(v21)
+```
+
+En este caso, el valor de p de Chi cuadrado no es significante (p-value = 0.1528) por lo tanto se acepta  hipotesis nula y se rechaza hipotesis alterna, donde se evidencia que ser carcelario no influye en la perdida de seguimiento de los pacientes. El índice de Cramer y Phi (0.015) determinan que no hay asociación entre las variables.
+
+
+*Perdida seguimiento vs Grupo poblacional: gestante*
+
+```{r}
+v22 = table(df2$PERDIDA_SEGUIMIENTO, df2$gp_gestan)
+rownames(v22) <- c("SI", "NO")
+colnames(v22) <- c("SI", "NO")              
+addmargins(v22)
+```
+
+```{r}
+PlotXTabs2(data=df2,x=gp_gestan,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v22)
+fisher.test(v22)
+assocstats(v22)
+```
+
+En este caso, el valor de p de Chi cuadrado no es significante (p-value = 0.07948) por lo tanto se acepta  hipotesis nula y se rechaza hipotesis alterna, donde se evidencia que ser gestante no influye en la perdida de seguimiento de los pacientes. El índice de Cramer y Phi (0.022) determinan que no hay asociación entre las variables.
+
+*Perdida seguimiento vs Grupo poblacional: habitante de calle*
+
+```{r}
+v23 = table(df2$PERDIDA_SEGUIMIENTO, df2$gp_indigen)
+rownames(v23) <- c("SI", "NO")
+colnames(v23) <- c("SI", "NO")              
+addmargins(v23)
+```
+
+```{r}
+PlotXTabs2(data=df2,x=gp_indigen,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v23)
+fisher.test(v23)
+assocstats(v23)
+```
+En este caso, el valor de p de Chi cuadrado es significante (p-value < 2.2e-16) por lo tanto se rechaza  hipotesis nula y se acepta hipotesis alterna, donde se evidencia que ser habitante de calle influye en la perdida de seguimiento de los pacientes. El índice de Cramer y Phi (0.278) determinan que hay una fuerza de asociación  mediana entre las variables.
+
+
+*Perdida seguimiento vs Grupo poblacional: ICBF*
+
+```{r}
+v24 = table(df2$PERDIDA_SEGUIMIENTO, df2$gp_pobicbf)
+rownames(v24) <- c("SI", "NO")
+colnames(v24) <- c("SI", "NO")              
+addmargins(v24)
+```
+
+```{r}
+PlotXTabs2(data=df2,x=gp_pobicbf,y=PERDIDA_SEGUIMIENTO)
+```
+
+
+```{r}
+chisq.test(v24)
+fisher.test(v24)
+assocstats(v24)
+```
+
+En este caso, el valor de p de Chi cuadrado no es significante (p-value = 0.6238) por lo tanto se acepta  hipotesis nula y se rechaza hipotesis alterna, donde se evidencia que ser población del ICBF no influye en la perdida de seguimiento de los pacientes. El índice de Cramer y Phi (0.01) determinan que no hay asociación entre las variables.
+
+
+*Perdida seguimiento vs Grupo poblacional: poblacion psiquiatrica*
+
+```{r}
+v25 = table(df2$PERDIDA_SEGUIMIENTO, df2$gp_psiquia)
+rownames(v25) <- c("SI", "NO")
+colnames(v25) <- c("SI", "NO")              
+addmargins(v25)
+```
+
+```{r}
+PlotXTabs2(data=df2,x=gp_psiquia,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v25)
+fisher.test(v25)
+assocstats(v25)
+```
+
+En este caso, el valor de p de Chi cuadrado es significante (p-value = 0.001773) por lo tanto se rechaza  hipotesis nula y se acepta hipotesis alterna, donde se evidencia que ser población psiquiatrica influye en la perdida de seguimiento de los pacientes. El índice de Cramer y Phi (0.037) determinan que hay asociación muy pequeña entre las variables.
+
+
+*Perdida seguimiento vs Grupo poblacional: localizacion Extrapulmonar*
+
+```{r}
+v26 = table(df$PERDIDA_SEGUIMIENTO, df$LOCALIZACION_EXTRA)
+rownames(v26) <- c("SI", "NO")
+colnames(v26) <- c("Genitourinaria", "NA", "Pleural", "Cutanea", "Ganglionar", "Intestinal", "Meningea", "Osteoarticular", "Otro", "Pericardica", "Peritoneal", "Renal", "Laringea")              
+addmargins(v26)
+```
+
+```{r}
+PlotXTabs2(data=df,x=LOCALIZACION_EXTRA,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v26)
+#fisher.test(v26)
+assocstats(v26)
+```
+
+En este caso, el valor de p de Chi cuadrado es significante (p-value = 3.094e-05) por lo tanto se rechaza  hipotesis nula y se acepta hipotesis alterna, donde se evidencia que la locaalizacion anatomica de la tuberculosis influye en la perdida de seguimiento de los pacientes. El índice de Cramer (0.065) determina que hay asociación muy pequeña entre las variables.
+
+*Perdida seguimiento vs Grupo poblacional: localidad de residencia*
+
+```{r}
+v27 = table(df2$PERDIDA_SEGUIMIENTO, df2$LOC_RES)
+rownames(v27) <- c("SI", "NO")
+colnames(v27) <- c("CO", "SO", "NORTE", "SUR", "FDB", "SD")              
+addmargins(v27)
+```
+
+```{r}
+PlotXTabs2(data=df2,x=LOC_RES,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v27)
+#fisher.test(v26)
+assocstats(v27)
+```
+
+En este caso, el valor de p de Chi cuadrado es significante (p-value < 2.2e-16) por lo tanto se rechaza  hipotesis nula y se acepta hipotesis alterna, donde se evidencia que la localidad de residencia del paciente influye en la perdida de seguimiento de los pacientes. El índice de Cramer (0.16) determina que hay asociación muy pequeña entre las variables.
+
+
+*Perdida seguimiento vs Grupo poblacional: localidad de diagnostico*
+
+```{r}
+v28 = table(df2$PERDIDA_SEGUIMIENTO, df2$LOC_DX)
+rownames(v28) <- c("SI", "NO")
+colnames(v28) <- c("CO", "SO", "NORTE", "SUR", "Sin Dato")              
+addmargins(v28)
+```
+```{r}
+PlotXTabs2(data=df2,x=LOC_DX,y=PERDIDA_SEGUIMIENTO)
+```
+
+```{r}
+chisq.test(v28)
+#fisher.test(v26)
+assocstats(v28)
+```
+
+En este caso, el valor de p de Chi cuadrado es significante (p-value < 2.2e-16) por lo tanto se rechaza  hipotesis nula y se acepta hipotesis alterna, donde se evidencia que la localidad de diagnostico del paciente influye en la perdida de seguimiento de los pacientes. El índice de Cramer (0.164) determina que hay asociación muy pequeña entre las variables.
+
+
+##SELECCION DE PREDICTORES
+
+```{r}
+df2$REGIMEN_AFILIACION<- str_replace(df2$REGIMEN_AFILIACION, "C - CONTRIBUTIVO","C")
+df2$REGIMEN_AFILIACION<- str_replace(df2$REGIMEN_AFILIACION, "E - ESPECIAL","E")
+df2$REGIMEN_AFILIACION<- str_replace(df2$REGIMEN_AFILIACION, "N - NO ASEGURADO","N")
+df2$REGIMEN_AFILIACION<- str_replace(df2$REGIMEN_AFILIACION, "P - EXCEPCION","P")
+df2$REGIMEN_AFILIACION<- str_replace(df2$REGIMEN_AFILIACION, "S - SUBSIDIADO","S")
+```
+
+
+```{r}
+df2$CONDICION_INGRESO<- str_replace(df2$CONDICION_INGRESO, "OTROS PREVIAMENTE TRATADOS","OPT")
+df2$CONDICION_INGRESO<- str_replace(df2$CONDICION_INGRESO, "REINGRESO TRAS FRACASO","RTF")
+df2$CONDICION_INGRESO<- str_replace(df2$CONDICION_INGRESO, "REINGRESO TRAS PERDIDA EN EL SEGUIMIENTO","RTPS")
+df2$CONDICION_INGRESO<- str_replace(df2$CONDICION_INGRESO, "REINGRESO TRAS RECAIDA","RTR")
+
+```
+
+
+
+```{r}
+predictores_nd<- df2[,c("ID", "SEXO", "EDAD", "PERTENENCIA_ETNICA", "gp_desplaz", "gp_migrant",  "gp_indigen", "LOC_RES", "REGIMEN_AFILIACION", "TIPO_TB", "CONDICION_INGRESO", "RESULTADO_BK_RECOD", "CONDICION_VIH", "Consumidor_SPA", "Desnutricion", "Tabaquismo", "Enf_Mental", "PERDIDA_SEGUIMIENTO")]
+predictores_nd<-as.data.frame(predictores_nd)
+```
+
+Se deben aplicar tecnicas para reducir las variables, para ello hay que codificar las variables categoricas:
+
+
+
+```{r}
+library(writexl)
+write_xlsx(predictores_nd, "predictores_nd.xlsx")
+```
+
+
+```{r}
+#install.packages("fastDummies")
+```
+
+```{r}
+#library(fastDummies)
+#dummy_cols(predictores)
+```
+
+
+```{r}
+#predictores_dumy<-dummy_columns(predictores, remove_first_dummy=TRUE)
+#predictores_dumy
+```
+
+```{r}
+library(dplyr)
+predictores <- predictores %>% mutate(Sexo_D = case_when (                                                   
+              SEXO == "F" ~ 1,
+              SEXO == "M" ~ 2),
+Pert_Etnica_D = case_when (
+              PERTENENCIA_ETNICA == "OTRO" ~ 0,
+              PERTENENCIA_ETNICA == "INDIGENA" ~ 1,
+              PERTENENCIA_ETNICA == "AFRO" ~ 2,
+              PERTENENCIA_ETNICA == "PALENQUERO" ~ 3,
+              PERTENENCIA_ETNICA == "RAIZAL" ~ 4,
+              PERTENENCIA_ETNICA == "ROOM" ~ 5,
+              PERTENENCIA_ETNICA == "ROOM (GITANO)" ~ 5),
+gp_desplazado_D = case_when (
+              gp_desplaz == "SI" ~ 1,
+              gp_desplaz == "NO" ~ 0),
+gp_migrante_D = case_when (
+              gp_migrant == "SI" ~ 1,
+              gp_migrant == "NO" ~ 0),
+gp_hab_calle_D = case_when (
+              gp_indigen == "SI" ~ 1,
+              gp_indigen == "NO" ~ 0),
+Loc_Res_D = case_when (
+              LOC_RES == "Sin Dato" ~ 0,
+              LOC_RES == "NORTE" ~ 1,
+              LOC_RES == "CO" ~ 2,
+              LOC_RES == "SO" ~ 3,
+              LOC_RES == "SUR" ~ 4,
+              LOC_RES == "FDB" ~ 5),
+Reg_Afi_D = case_when (
+              REGIMEN_AFILIACION == "C" ~ 1,
+              REGIMEN_AFILIACION == "S" ~ 2,
+              REGIMEN_AFILIACION == "N" ~ 3,
+              REGIMEN_AFILIACION == "E" ~ 4,
+              REGIMEN_AFILIACION == "P" ~ 5),
+Tipo_TB_D = case_when (
+              TIPO_TB == "PULMONAR" ~ 1,
+              TIPO_TB== "EXTRAPULMONAR" ~ 2),
+Cond_Ing_D = case_when (
+              CONDICION_INGRESO == "REMITIDO" ~ 0,
+              CONDICION_INGRESO == "OPT" ~ 1,
+              CONDICION_INGRESO == "RTPS" ~ 2,
+              CONDICION_INGRESO == "RTR" ~ 3,
+              CONDICION_INGRESO == "RTF" ~ 4,
+              CONDICION_INGRESO == "NUEVO" ~ 5),
+Res_BK_D = case_when (
+              RESULTADO_BK_RECOD == "POSITIVO" ~ 1,
+              RESULTADO_BK_RECOD == "SD" ~ 0,
+              RESULTADO_BK_RECOD == "NEGATIVO" ~ 2,
+              RESULTADO_BK_RECOD == "NO REALIZADO" ~ 3),
+Cond_VIH_D = case_when (
+              CONDICION_VIH == "POSITIVO" ~ 1,
+              CONDICION_VIH == "DESCONOCIDO" ~ 0,
+              CONDICION_VIH == "NEGATIVO" ~ 2),
+Consumo_SPA_D = case_when (
+              Consumidor_SPA == "SI" ~ 1,
+              Consumidor_SPA == "NO" ~ 0),
+DNT_D = case_when (
+              Desnutricion == "SI" ~ 1,
+              Desnutricion == "NO" ~ 0),
+Tab_D = case_when (
+              Tabaquismo == "SI" ~ 1,
+              Tabaquismo == "NO" ~ 0),
+Enf_Mental_D = case_when (
+              Enf_Mental == "SI" ~ 1,
+              Enf_Mental == "NO" ~ 0),
+Perd_Seg_D = case_when (
+              PERDIDA_SEGUIMIENTO == "SI" ~ 1,
+              PERDIDA_SEGUIMIENTO == "NO" ~ 0),
+              )
+
+#predictores_dumy$SEXO <- as.numeric(predictores$SEXO)
+
+head(predictores)
+```
+
+
+```{r}
+#install.packages("writexl")
+library(writexl)
+write_xlsx(predictores, "predictores.xlsx")
+```
+
+
+
+```{r}
+
+predictores$EDAD_ESCAL <- scale(predictores[,c(3)],center=T,scale=T)
+kable(head(predictores),format = "markdown")
+as.numeric(predictores$EDAD_ESCAL)
+
+# matriz_numeric <- matrix(as.numeric(matriz), nrow = nrow(matriz), byrow = TRUE)
+
+base.escalada<- as.data.frame(predictores)
+
+```
+
+
+```{r}
+base_predic_dumy <- base.escalada[c("ID", "Sexo_D", "EDAD_ESCAL", "Pert_Etnica_D", "gp_desplazado_D", "gp_migrante_D", "gp_hab_calle_D", "Loc_Res_D", "Reg_Afi_D", "Tipo_TB_D", "Cond_Ing_D", "Res_BK_D", "Cond_VIH_D", "Consumo_SPA_D", "DNT_D", "Tab_D", "Enf_Mental_D", "Perd_Seg_D")]
+head(base_predic_dumy)
+```
+
+# BALANCEO POR SMOTE
+
+```{r}
+install.packages("rsample")
+install.packages("smotefamily")
+```
+
+Partición del dataset
+
+```{r}
+#RNGkind(sample.kind = "Rounding")
+#set.seed(100)
+
+# your code here
+# na.omit(balanceo)
+index_balanceo <- sample(x = nrow(base_predic_dumy), size= nrow(base_predic_dumy)*0.7)
+balanceo_train <- base_predic_dumy[index_balanceo, ]
+balanceo_test <- base_predic_dumy[-index_balanceo, ]
+prop.table(table(balanceo_train$Perd_Seg_D))
+```
+
+
+```{r}
+glimpse(balanceo_train)
+glimpse(balanceo_test)
+```
+
+
+
+```{r warning=FALSE}
+library(DMwR2)
+library(rsample)
+library(smotefamily)
+library(partykit)
+library(rsample)
+library(groupdata2)
+library(grid)
+library(libcoin)
+library(mvtnorm)
+library(caret)
+library(ggplot2)
+library(lattice)
+library(dplyr)
+```
+```{r}
+#install.packages("writexl")
+#library(writexl)
+#write_xlsx(balanceo_train_2, "balanceo_train_2.xlsx")
+```
+
+
+
+```{r message=FALSE}
+#smote
+
+# balanceo_train_2 <- balanceo_train[,-3] # Se oculta la edad escalada
+
+
+na.omit(balanceo_train)
+na.omit(balanceo_test)
+
+perd_seg_train_smote <- SMOTE(X = balanceo_train[,-18], target = balanceo_train[,18], dup_size = 12)
+
+perd_seg_train_smote<- perd_seg_train_smote$data # extract only the balanced dataset
+perd_seg_train_smote$class <- as.factor(perd_seg_train_smote$class)
+
+prop.table(table(perd_seg_train_smote$class))
+
+```
+
+
+
+
+```{r}
+library(partykit)
+perd_seg_tree_smote <- ctree(formula = class ~ . , 
+                             data = perd_seg_train_smote)
+```
+
+
+
+```{r}
+perd_seg_test_smote <- predict(object = perd_seg_tree_smote, 
+                                newdata = balanceo_test, 
+                                type = "response")
+```
+
+
+```{r}
+confusionMatrix(perd_seg_test_smote,as.factor(balanceo_test$Perd_Seg_D),positive = "1")
+```
+
+
+```{r}
+library(caret)
+library(lattice)
+library(ggplot2)
+
+set.seed(2969)
+imbal_train <- balanceo_train 
+imbal_test  <- balanceo_test
+table(imbal_train$Class)
+
+#index_balanceo <- sample(x = nrow(base_predic_dumy), size= nrow(base_predic_dumy)*0.7)
+#balanceo_train <- base_predic_dumy[index_balanceo, ]
+#balanceo_test <- base_predic_dumy[-index_balanceo, ]
+
+```
+## downsampling
+
+```{r}
+set.seed(9560)
+x=balanceo_train
+y= as.factor(balanceo_train$Perd_Seg_D)
+down_train <- downSample(x = x[, -ncol(x)],
+                         y = y)
+table(down_train$Class)  
+```
+
+## Upsampling
+
+
+```{r}
+set.seed(9560)
+up_train <- upSample(x = x[, -ncol(x)],
+                     y = y)                         
+table(up_train$Class) 
+```
+```{r}
+#install.packages("DMwR2")
+#install.packages("TTR")
+```
+
+
+```{r}
+
+```
+```{r}
+library(ROSE)
+
+set.seed(9560)
+rose_train <- ROSE(Perd_Seg_D ~ ., data  = x, hmult.mino=1)$data                         
+table(rose_train$Class) 
+```
+```{r}
+ROSE(formula, data, N, p=0.5, hmult.majo=1, hmult.mino=1, 
+     subset=options("subset")$subset,
+     na.action=options("na.action")$na.action, seed)
+```
+
+
+```{r}
+ctrl <- trainControl(method = "repeatedcv", repeats = 5,
+                     classProbs = TRUE,
+                     summaryFunction = twoClassSummary)
+
+set.seed(5627)
+orig_fit <- train(Class ~ ., data = imbal_train, 
+                  method = "treebag",
+                  nbagg = 50,
+                  metric = "ROC",
+                  trControl = ctrl)
+
+set.seed(5627)
+down_outside <- train(Class ~ ., data = down_train, 
+                      method = "treebag",
+                      nbagg = 50,
+                      metric = "ROC",
+                      trControl = ctrl)
+
+set.seed(5627)
+up_outside <- train(Class ~ ., data = up_train, 
+                    method = "treebag",
+                    nbagg = 50,
+                    metric = "ROC",
+                    trControl = ctrl)
+
+set.seed(5627)
+rose_outside <- train(Class ~ ., data = rose_train, 
+                      method = "treebag",
+                      nbagg = 50,
+                      metric = "ROC",
+                      trControl = ctrl)
+
+
+set.seed(5627)
+smote_outside <- train(Class ~ ., data = perd_seg_train_smote, 
+                       method = "treebag",
+                       nbagg = 50,
+                       metric = "ROC",
+                       trControl = ctrl)
+```
+
+```{r}
+outside_models <- list(original = orig_fit,
+                       down = down_outside,
+                       up = up_outside,
+                       SMOTE = smote_outside,
+                       ROSE = rose_outside)
+
+outside_resampling <- resamples(outside_models)
+
+test_roc <- function(model, data) {
+  library(pROC)
+  roc_obj <- roc(data$Class, 
+                 predict(model, data, type = "prob")[, "Class1"],
+                 levels = c("Class2", "Class1"))
+  ci(roc_obj)
+  }
+
+outside_test <- lapply(outside_models, test_roc, data = imbal_test)
+outside_test <- lapply(outside_test, as.vector)
+outside_test <- do.call("rbind", outside_test)
+colnames(outside_test) <- c("lower", "ROC", "upper")
+outside_test <- as.data.frame(outside_test)
+
+summary(outside_resampling, metric = "ROC")
+```
+
+
+# BALANCED RANDOM FOREST (BRF)
+
+
+```{r}
+ ## Simulate data sets with a small event rate
+set.seed(1)
+ training <- balanceo_train
+ testing <- balanceo_test
+ 
+ table(balanceo_train$Perd_Seg_D)
+ 
+```
+
+```{r}
+ nmin <- sum(balanceo_train$Perd_Seg_D == "1")
+ nmin
+```
+
+
+```{r}
+library(caret)
+
+ctrl <- trainControl(method = "cv",
+                      classProbs = TRUE,
+                      summaryFunction = twoClassSummary)
+ 
+ set.seed(2)
+ rfDownsampled <- train(Class ~ ., data = balanceo_train,
+                        method = "rf",
+                        ntree = 1500,
+                        tuneLength = 5,
+                        metric = "Accuracy",
+                        trControl = ctrl,
+                        ## Tell randomForest to sample by strata. Here, 
+                        ## that means within each class
+                        strata = balanceo_train$Perd_Seg_D,
+                        ## Now specify that the number of samples selected
+                        ## within each class should be the same
+                        sampsize = rep(nmin, 2))
+ 
+ 
+
+```
+
+
+```{r}
+ set.seed(2)
+ rfUnbalanced <- train(Class ~ ., data = training,
+                       method = "rf",
+                       ntree = 1500,
+                       tuneLength = 5,
+                       metric = "ROC",
+                       trControl = ctrl)
+```
+
+
+
+```{r}
+library(ranger)
+set.seed(43)
+
+#Make a dataste
+set.seed(43)
+nrow <- 1000
+ncol <- 10
+X <- matrix(rnorm(nrow * ncol), ncol=ncol)
+CF <- rnorm(ncol)
+Y <- (X %*% CF + rnorm(nrow))[,1]
+Y <- as.integer(Y > quantile(Y, 0.90))
+table(Y)
+
+#Compute weights to balance the RF
+w <- 1/table(Y)
+w <- w/sum(w)
+weights <- rep(0, nrow)
+weights[Y == 0] <- w['0']
+weights[Y == 1] <- w['1']
+table(weights, Y)
+
+#Fit the RF
+data <- data.frame(Y=factor(ifelse(Y==0, 'no', 'yes')), X)
+model <- ranger(Y~., data, case.weights=weights)
+print(model)
+
+```
+
+
+## XGBoost
+
+```{r}
+
+require(xgboost)
+require(methods)
+
+```
+```{r}
+xgbTrain <- as.matrix(balanceo_train)
+```
+
+
+```{r}
+bstSparse <- xgboost(data =xgbTrain , max_depth = 4, eta = 0.2, nthread = 2, nrounds = 200 ,                 
+                     eval_metric = "auc" , scale_pos_weight = 48, colsample_bytree = 0.7,gamma = 2.5,
+                     eval_metric = "logloss",
+                     objective = "binary:logistic")
+
+```
+
+## MODELADO LASSO ORIGINAL
+
+```{r}
+library(Matrix)
+library(glmnet)
+library(pROC)
+library(caret)
+
+# Import dataset
+#data1 = read.csv(file = "./data/input/breast-cancer.csv")
+#data1$diagnosis<-ifelse(data1$diagnosis=='M', 1,0)
+#data2 = data.matrix(data1)
+#Matrix(data2, sparse = TRUE)
+
+set.seed(6789)
+
+split<- sample(x = nrow(balanceo), size= nrow(balanceo)*0.7)
+train <- balanceo[index_balanceo, ]
+test <- balanceo[-index_balanceo, ]
+
+train_sparse = sparse.model.matrix(~., train[,1:18]) 
+test_sparse = sparse.model.matrix(~., test[,1:18]) 
+
+```
+
+
+```{r}
+# Train the model
+glmmod = glmnet(x=train_sparse, y=as.factor(train[,18]), alpha=1, family="binomial")
+plot(glmmod, xvar="lambda")
+glmmod
+
+coef(glmmod)[,100]
+
+# Try cross validation lasso
+cv.glmmod = cv.glmnet(x=train_sparse, y=as.factor(train[,18]), alpha=1, family="binomial")
+plot(cv.glmmod)
+
+lambda = cv.glmmod$lambda.1se # the value of lambda used by default
+lambda
+
+coefs = as.matrix(coef(cv.glmmod)) # convert to a matrix (618 by 1)
+ix = which(abs(coefs[,1]) > 0)
+length(ix)
+
+coefs[ix,1, drop=FALSE]
+
+test$cv.glmmod <- predict(cv.glmmod,newx=test_sparse,type='response')[,1]
+
+########################
+
+# Get optimal lambda
+best.lambda <- cv.glmmod$lambda.min
+best.lambda
+```
+
+
+```{r}
+# Predict the test set using the model
+pred_lasso = predict(glmmod, test_sparse, type="response", s=best.lambda)
+pred_lasso
+
+# Apply a threshold
+new_pred_lasso = ifelse(pred_lasso >= 0.5, 1, 0)
+new_pred_lasso = data.frame(new_pred_lasso)
+data_lasso = cbind(test[,2], new_pred_lasso)
+names(data_lasso) = c("actual", "pred")
+xtab_lasso = table(data_lasso$actual, data_lasso$pred)
+
+cm_lasso = confusionMatrix(xtab_lasso)
+```
+
+```{r}
+# Get performance measures
+overall_accuracy_lasso = cm_lasso$overall['Accuracy']
+```
+
+
+Lasso is a supervised algorithm wherein the process identifies the variables that are strongly associated with the response variable. This is called variable selection. Then, Lasso forces the coefficients of the variables towards zero. This is now the process of shrinkage. This is to make the model less sensitive to the new data set. These processes help alleviate the limits of human cognition as fewer input variables are selected.
+
+## MODELADO LASSO BALANCEADO
+
+```{r}
+library(Matrix)
+library(glmnet)
+library(pROC)
+library(caret)
+
+# Import dataset
+data1 = read.csv(file = "./data/input/breast-cancer.csv")
+data1$diagnosis<-ifelse(data1$diagnosis=='M', 1,0)
+data2 = data.matrix(data1)
+Matrix(data2, sparse = TRUE)
+
+set.seed(6789)
+
+# Split the data to train and test
+split = sample(nrow(data1), floor(0.7*nrow(data1)))
+train = data1[split,]
+test = data1[-split,]
+
+train_sparse = sparse.model.matrix(~., train[,3:32]) perd_seg_tree_smote
+test_sparse = sparse.model.matrix(~., test[,3:32]) perd_seg_test_smote
+```
+
+
